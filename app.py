@@ -162,14 +162,16 @@ with tab2:
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image.", width=200)
+        st.image(image, caption="Preview", width=100)
     
     if submit:
         if uploaded_file is not None:
+          with st.spinner('Doing some AI magic...'):
             image_data = input_image_setup(uploaded_file)
             response = get_gemini_response(input_prompt, image_data, input)
             st.subheader("The Response is")
             st.write(response)
+            st.balloons()
         else:
             st.error("Please upload an invoice image.")
             
