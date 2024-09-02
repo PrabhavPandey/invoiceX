@@ -1,5 +1,4 @@
 import streamlit as st
-from dotenv import load_dotenv
 from PIL import Image
 import google.generativeai as genai
 import os
@@ -12,11 +11,8 @@ from reportlab.lib.styles import getSampleStyleSheet
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
-load_dotenv()
-
 # Configure Google API
-os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Function to load Google Gemini model and get response
 def get_gemini_response(input, image, prompt):
