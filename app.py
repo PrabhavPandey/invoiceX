@@ -9,6 +9,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+import asyncio
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 load_dotenv()
 
@@ -21,6 +23,19 @@ def get_gemini_response(input, image, prompt):
     model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content([input, image[0], prompt])
     return response.text
+
+async def get_gemini_response_with_timeout(input_prompt, image_data, input):
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as pool:
+        try:
+            response = await asyncio.wait_for(
+                loop.run_in_executor(pool, get_gemini_response, input_prompt, image_data, input),
+                timeout=8.0
+            )
+            return response
+        except TimeoutError:
+            st.toast("Having trouble reaching Gemini, try again after some time.", icon="⚠️")
+            return None
 
 # Function to process uploaded image
 def input_image_setup(uploaded_file):
@@ -153,7 +168,7 @@ with tab2:
                    Note that, you can be flexible with the answers. For example,
                    use understand that the user may use a synonym for any word related to the invoice.
                    
-                   If the quesiton does not pertain to the invoice, you can answer with "Please ask a question regarding the invoice. Thanks!".
+                   If the question does not pertain to the invoice, you can answer with "Please ask a question regarding the invoice. Thanks!".
                    """
     
     input = st.text_input("Input Prompt: ", key="input")
@@ -166,12 +181,13 @@ with tab2:
     
     if submit:
         if uploaded_file is not None:
-          with st.spinner('Doing some AI magic...'):
-            image_data = input_image_setup(uploaded_file)
-            response = get_gemini_response(input_prompt, image_data, input)
-            st.subheader("The Response is")
-            st.write(response)
-            st.balloons()
+            with st.spinner('Doing some AI magic...'):
+                image_data = input_image_setup(uploaded_file)
+                response = asyncio.run(get_gemini_response_with_timeout(input_prompt, image_data, input))
+                if response:
+                    st.subheader("The Response is")
+                    st.write(response)
+                    st.balloons()
         else:
             st.error("Please upload an invoice image.")
             
